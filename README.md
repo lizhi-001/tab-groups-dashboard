@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Privacy](https://img.shields.io/badge/privacy-100%25%20local-brightgreen)
 
-[English](#features) | [中文](#功能特性)
+[English](#features) | [中文](README.zh-CN.md)
 
 ---
 
