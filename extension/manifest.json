@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Groups Dashboard",
+  "version": "1.0.0",
+  "description": "A new tab page that organizes your open tabs by Chrome tab groups and windows, with quick-access favorites.",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "storage",
+    "activeTab"
+  ],
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "Tab Groups Dashboard"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

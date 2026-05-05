@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tab Groups Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="greeting" id="greeting"></h1>
+      <p class="date" id="date-display"></p>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- Left main column -->
+    <section class="main-column">
+
+      <!-- Favorites section -->
+      <div class="favorites-section" id="favorites-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📌</span> Favorites
+          </h2>
+          <button class="btn-add-favorite" id="btn-add-favorite" title="Add current page to favorites">
+            <span>+</span>
+          </button>
+        </div>
+        <div class="favorites-grid" id="favorites-grid">
+          <!-- Rendered dynamically -->
+        </div>
+        <div class="favorites-empty" id="favorites-empty" style="display:none;">
+          <p>No favorites yet. Click + to add tabs you visit often.</p>
+        </div>
+      </div>
+
+      <!-- Windows & Groups container -->
+      <div class="windows-container" id="windows-container">
+        <!-- Rendered dynamically: one card per window -->
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <div class="empty-icon">🎉</div>
+        <p>No open tabs to display!</p>
+      </div>
+
+    </section>
+
+    <!-- Right sidebar -->
+    <aside class="sidebar">
+      <!-- Search -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search tabs..." autocomplete="off" />
+        <button class="search-clear" id="search-clear" style="display:none;">✕</button>
+      </div>
+
+      <!-- Stats panel -->
+      <div class="stats-panel" id="stats-panel">
+        <h3 class="stats-title">Overview</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number" id="stat-windows">0</span>
+            <span class="stat-label">Windows</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="stat-groups">0</span>
+            <span class="stat-label">Groups</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="stat-tabs">0</span>
+            <span class="stat-label">Tabs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="quick-actions">
+        <h3 class="stats-title">Quick Actions</h3>
+        <button class="action-btn" id="btn-collapse-all">
+          <span>📁</span> Collapse All Groups
+        </button>
+        <button class="action-btn" id="btn-expand-all">
+          <span>📂</span> Expand All Groups
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast">
+    <span class="toast-message" id="toast-message"></span>
+  </div>
+
+  <!-- Add Favorite Modal -->
+  <div class="modal-overlay" id="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add to Favorites</h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label for="fav-url">URL</label>
+        <input type="url" id="fav-url" placeholder="https://example.com" />
+        <label for="fav-title">Title (optional, auto-detected from URL)</label>
+        <input type="text" id="fav-title" placeholder="Leave empty to auto-detect" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="btn-confirm" id="modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span id="footer-stats">Tab Groups Dashboard</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Tab Groups Dashboard</title>
+  <meta name="description" content="Privacy policy for Tab Groups Dashboard, a Chrome extension that organizes tabs by groups." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #202124;
+      --ink-light: #5f6368;
+      --ink-faint: #80868b;
+      --paper: #ffffff;
+      --paper-warm: #f8f9fa;
+      --accent: #1a73e8;
+      --accent-light: rgba(26, 115, 232, 0.08);
+      --border: #e0e0e0;
+      --radius: 10px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--paper-warm);
+      color: var(--ink);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Navigation */
+    nav {
+      background: var(--paper);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      color: var(--ink-light);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent);
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 40px 40px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--ink-light);
+      font-size: 1.05rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .hero .updated {
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: var(--ink-faint);
+    }
+
+    /* Content */
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 40px;
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 40px;
+    }
+
+    .main-content {
+      min-width: 0;
+    }
+
+    .main-content section {
+      margin-bottom: 40px;
+    }
+
+    .main-content h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent-light);
+      color: var(--ink);
+    }
+
+    .main-content h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 16px 0 8px;
+      color: var(--ink);
+    }
+
+    .main-content p {
+      margin-bottom: 12px;
+      color: var(--ink-light);
+      font-size: 0.92rem;
+    }
+
+    .main-content ul {
+      margin: 8px 0 16px 20px;
+      color: var(--ink-light);
+      font-size: 0.92rem;
+    }
+
+    .main-content li {
+      margin-bottom: 6px;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--paper-warm);
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      color: var(--ink-light);
+    }
+
+    /* Sidebar TOC */
+    .toc {
+      position: sticky;
+      top: 80px;
+      align-self: start;
+    }
+
+    .toc h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-faint);
+      margin-bottom: 12px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 6px 0;
+      font-size: 0.82rem;
+      color: var(--ink-light);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      padding-left: 12px;
+      transition: all 0.2s;
+    }
+
+    .toc a:hover {
+      color: var(--accent);
+      border-left-color: var(--accent);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 30px 40px;
+      border-top: 1px solid var(--border);
+      color: var(--ink-faint);
+      font-size: 0.82rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .content-wrapper {
+        grid-template-columns: 1fr;
+        padding: 0 20px;
+      }
+
+      .toc {
+        display: none;
+      }
+
+      nav {
+        padding: 12px 20px;
+      }
+
+      .hero {
+        padding: 40px 20px 30px;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#" class="nav-brand">Tab Groups Dashboard</a>
+    <div class="nav-links">
+      <a href="https://github.com/your-username/tab-groups-dashboard">GitHub</a>
+      <a href="#">Extension</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>Privacy Policy</h1>
+    <p>Tab Groups Dashboard runs entirely inside your browser. Your data never leaves your device.</p>
+    <p class="updated">Last updated: May 5, 2026</p>
+  </div>
+
+  <div class="content-wrapper">
+    <main class="main-content">
+
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>Tab Groups Dashboard is a Chrome extension that organizes your open tabs by Chrome tab groups and windows. It is designed to work entirely within your browser with zero external communication.</p>
+        <p>We do <strong>not</strong> require an account, sell data, use remote code, or transmit your browsing information to any external server.</p>
+      </section>
+
+      <section id="data-access">
+        <h2>2. Data We Access</h2>
+        <table>
+          <thead>
+            <tr><th>Data</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Open tab metadata (title, URL, favicon)</td><td>Display tabs organized by group</td></tr>
+            <tr><td>Chrome tab group info (name, color)</td><td>Show group labels and colors</td></tr>
+            <tr><td>Window information</td><td>Organize tabs by window</td></tr>
+            <tr><td>User-created favorites</td><td>Display pinned favorite sites</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="permissions">
+        <h2>3. Permissions Explained</h2>
+        <table>
+          <thead>
+            <tr><th>Permission</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>tabs</code></td><td>Read open tabs to display them on the dashboard</td></tr>
+            <tr><td><code>tabGroups</code></td><td>Read Chrome native tab group names, colors, and state</td></tr>
+            <tr><td><code>storage</code></td><td>Persist favorites and preferences locally</td></tr>
+            <tr><td><code>activeTab</code></td><td>Navigate to a tab when you click on it</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="storage">
+        <h2>4. Data Storage</h2>
+        <p>All data is stored locally via Chrome's <code>chrome.storage.local</code> API. Data persists until you:</p>
+        <ul>
+          <li>Remove it manually within the extension</li>
+          <li>Clear extension data via Chrome settings</li>
+          <li>Uninstall the extension</li>
+        </ul>
+        <p><strong>No data is ever transmitted externally.</strong></p>
+      </section>
+
+      <section id="sharing">
+        <h2>5. Data Sharing</h2>
+        <p>We do <strong>not</strong> collect, transmit, sell, or share any user data with third parties. Period.</p>
+      </section>
+
+      <section id="third-party">
+        <h2>6. Third-Party Services</h2>
+        <table>
+          <thead>
+            <tr><th>Service</th><th>Purpose</th><th>Data Sent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Google Fonts</td><td>Typography</td><td>Standard HTTP request</td></tr>
+            <tr><td>Google Favicon API</td><td>Website icons</td><td>Domain name only</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="controls">
+        <h2>7. User Controls</h2>
+        <p>You can:</p>
+        <ul>
+          <li>Remove any favorite at any time</li>
+          <li>Clear all extension data via Chrome's extension management</li>
+          <li>Uninstall the extension to remove all stored data</li>
+          <li>Use Chrome's "Clear browsing data" to wipe extension storage</li>
+        </ul>
+      </section>
+
+      <section id="changes">
+        <h2>8. Changes to This Policy</h2>
+        <p>If this policy is updated, the "Last updated" date will reflect the change. Significant changes will be noted in the extension's changelog.</p>
+      </section>
+
+      <section id="contact">
+        <h2>9. Contact</h2>
+        <p>For questions about this privacy policy, please open an issue on our <a href="https://github.com/your-username/tab-groups-dashboard">GitHub repository</a>.</p>
+      </section>
+
+    </main>
+
+    <aside class="toc">
+      <h4>Contents</h4>
+      <a href="#overview">1. Overview</a>
+      <a href="#data-access">2. Data Access</a>
+      <a href="#permissions">3. Permissions</a>
+      <a href="#storage">4. Storage</a>
+      <a href="#sharing">5. Data Sharing</a>
+      <a href="#third-party">6. Third-Party</a>
+      <a href="#controls">7. User Controls</a>
+      <a href="#changes">8. Changes</a>
+      <a href="#contact">9. Contact</a>
+    </aside>
+  </div>
+
+  <footer>
+    <p>Tab Groups Dashboard &mdash; <a href="https://github.com/your-username/tab-groups-dashboard">View on GitHub</a></p>
+  </footer>
+</body>
+</html>
