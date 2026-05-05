@@ -10,19 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <h1 class="greeting" id="greeting"></h1>
-      <p class="date" id="date-display"></p>
-    </div>
-    <div class="header-right">
-      <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-        <span class="theme-icon">🌙</span>
-      </button>
-    </div>
-  </header>
-
   <main class="dashboard">
     <!-- Left main column -->
     <section class="main-column">
@@ -95,6 +82,9 @@
         <button class="action-btn" id="btn-expand-all">
           <span>📂</span> Expand All Groups
         </button>
+        <button class="action-btn" id="theme-toggle">
+          <span class="theme-icon">🌙</span> <span class="theme-label">Dark Mode</span>
+        </button>
       </div>
     </aside>
   </main>
@@ -123,10 +113,6 @@
       </div>
     </div>
   </div>
-
-  <footer class="footer">
-    <span id="footer-stats">Tab Groups Dashboard</span>
-  </footer>
 
   <script src="app.js"></script>
 </body>

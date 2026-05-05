@@ -37,8 +37,6 @@
 
   async function init() {
     loadTheme();
-    renderGreeting();
-    renderDate();
     await loadCollapsedState();
     await loadWindowCollapsedState();
     await renderFavorites();
@@ -65,28 +63,16 @@
 
   function updateThemeIcon(theme) {
     const icon = document.querySelector('.theme-icon');
+    const label = document.querySelector('.theme-label');
     if (icon) {
       icon.textContent = theme === 'dark' ? '☀️' : '🌙';
     }
+    if (label) {
+      label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    }
   }
 
-  // ========== Greeting & Date ==========
-  function renderGreeting() {
-    const hour = new Date().getHours();
-    let greeting = 'Good evening';
-    if (hour < 12) greeting = 'Good morning';
-    else if (hour < 18) greeting = 'Good afternoon';
-
-    const el = document.getElementById('greeting');
-    if (el) el.textContent = greeting;
-  }
-
-  function renderDate() {
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const el = document.getElementById('date-display');
-    if (el) el.textContent = now.toLocaleDateString('en-US', options);
-  }
+  // ========== Greeting & Date (removed — kept for reference) ==========
 
   // ========== Data Layer: Fetch Tabs by Groups ==========
   async function fetchAllTabsByGroup() {
@@ -541,14 +527,10 @@
     const elWin = document.getElementById('stat-windows');
     const elGroup = document.getElementById('stat-groups');
     const elTabs = document.getElementById('stat-tabs');
-    const elFooter = document.getElementById('footer-stats');
 
     if (elWin) elWin.textContent = windowCount;
     if (elGroup) elGroup.textContent = groupCount;
     if (elTabs) elTabs.textContent = tabCount;
-    if (elFooter) {
-      elFooter.textContent = `Tab Groups Dashboard · ${tabCount} tab${tabCount !== 1 ? 's' : ''} across ${windowCount} window${windowCount !== 1 ? 's' : ''}`;
-    }
   }
 
   // ========== Tab Actions ==========
