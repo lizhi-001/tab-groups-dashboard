@@ -41,48 +41,14 @@
 
 ## Screenshots
 
-### Collapsed View (Default)
+![Tab Groups Dashboard](example.jpg)
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  Good afternoon              Monday, May 5, 2026                  🌙   │
-├──────────────────────────────────────────┬─────────────────────────────┤
-│                                          │ 🔍 Search tabs... (⌘K)     │
-│  📌 Favorites                            │                             │
-│   🌐      📧      📝      🎨            │  Overview                   │
-│  GitHub  Gmail  Notion  Figma   [+]      │  3 Windows · 7 Groups       │
-│                                          │  23 Tabs                    │
-│  ▶ 🖥️ Current Window                    │                             │
-│    [🔵 Work] [🟢 Learning]  12 tabs [↗] │  Quick Actions              │
-│                                          │  [📁 Collapse All]          │
-│  ▶ 💻 Window 2                           │  [📂 Expand All]            │
-│    [🟡 Social] [🟣 Research]  5 tabs [↗] │                             │
-│                                          │                             │
-│  ▶ 💻 Window 3                           │                             │
-│    [🔴 Urgent]               6 tabs [↗] │                             │
-└──────────────────────────────────────────┴─────────────────────────────┘
-```
+### Key UI Elements
 
-### Expanded View (Click to Expand)
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  ▼ 🖥️ Current Window  [🔵 Work] [🟢 Learning]        12 tabs  [↗]    │
-├────────────────────────────────────────────────────────────────────────┤
-│  ┌─ 🔵 Work ─────────────────────────────────────────────────────┐    │
-│  │  [favicon] Jira Board                                  ⭐  ✕  │    │
-│  │  [favicon] VS Code Web                                 ⭐  ✕  │    │
-│  │  [favicon] Stack Overflow                              ⭐  ✕  │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│  ┌─ 🟢 Learning ─────────────────────────────────────────────────┐    │
-│  │  [favicon] MDN Docs                                    ⭐  ✕  │    │
-│  │  [favicon] TypeScript Handbook                         ⭐  ✕  │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│  ┌─ ⚫ Ungrouped ────────────────────────────────────────────────┐    │
-│  │  [favicon] New Tab                                     ⭐  ✕  │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+- **Left panel** — Favorites bar + collapsible window cards with group tags
+- **Right sidebar** — Search, overview stats, quick actions (theme toggle, collapse/expand)
+- **Window card** — Shows window name, group color tags, tab count, and `↗` jump button
+- **Collapsed by default** — Click to expand and see individual tabs
 
 ---
 
