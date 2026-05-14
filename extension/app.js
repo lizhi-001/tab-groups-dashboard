@@ -330,9 +330,9 @@
   function getDefaultFavicon(url) {
     try {
       const u = new URL(url);
-      return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`;
+      return 'https://www.google.com/s2/favicons?domain=' + u.hostname + '&sz=32';
     } catch {
-      return 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23e0e0e0%22/></svg>';
+      return FALLBACK_FAVICON;
     }
   }
 
