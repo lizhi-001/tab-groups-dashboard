@@ -725,6 +725,11 @@
     document.getElementById('btn-collapse-all')?.addEventListener('click', collapseAllGroups);
     document.getElementById('btn-expand-all')?.addEventListener('click', expandAllGroups);
 
+    // Backup actions
+    document.getElementById('btn-backup-now')?.addEventListener('click', manualBackup);
+    document.getElementById('btn-restore-backup')?.addEventListener('click', confirmRestoreBackup);
+    loadBackupInfo();
+
     // Add favorite button
     document.getElementById('btn-add-favorite')?.addEventListener('click', showAddFavoriteModal);
 
@@ -1005,6 +1010,185 @@
     } catch {
       return url;
     }
+  }
+
+  // ========== Backup & Restore ==========
+  async function loadBackupInfo() {
+    try {
+      const result = await chrome.storage.local.get('tabBackup');
+      const backup = result.tabBackup;
+      const infoEl = document.getElementById('backup-info');
+      if (!infoEl) return;
+
+      if (backup && backup.timestamp) {
+        const date = new Date(backup.timestamp);
+        const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+        infoEl.textContent = `Last: ${formatBackupDate(date)} · ${tabCount} tabs`;
+        infoEl.title = `${backup.windows.length} windows, ${tabCount} tabs`;
+      } else {
+        infoEl.textContent = 'No backup yet';
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function formatBackupDate(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+
+    return date.toLocaleDateString();
+  }
+
+  async function manualBackup() {
+    try {
+      // Trigger backup via the same logic as background.js
+      const windows = await chrome.windows.getAll({ populate: true });
+      let tabGroups = [];
+      try {
+        tabGroups = await chrome.tabGroups.query({});
+      } catch (e) {}
+
+      const groupMap = {};
+      tabGroups.forEach(g => {
+        groupMap[g.id] = {
+          title: g.title || 'Unnamed Group',
+          color: g.color || 'grey',
+          collapsed: g.collapsed || false
+        };
+      });
+
+      const backup = {
+        timestamp: Date.now(),
+        date: new Date().toLocaleString(),
+        windows: []
+      };
+
+      const INTERNAL = ['chrome://', 'chrome-extension://', 'about:', 'edge://', 'brave://'];
+
+      windows.forEach(win => {
+        if (win.type !== 'normal') return;
+        const winData = { focused: win.focused, tabs: [] };
+
+        win.tabs.forEach(tab => {
+          if (!tab.url || INTERNAL.some(p => tab.url.startsWith(p))) return;
+          winData.tabs.push({
+            url: tab.url,
+            title: tab.title || '',
+            pinned: tab.pinned || false,
+            groupId: tab.groupId,
+            groupTitle: tab.groupId > 0 ? (groupMap[tab.groupId]?.title || '') : '',
+            groupColor: tab.groupId > 0 ? (groupMap[tab.groupId]?.color || '') : ''
+          });
+        });
+
+        if (winData.tabs.length > 0) {
+          backup.windows.push(winData);
+        }
+      });
+
+      await chrome.storage.local.set({ tabBackup: backup });
+      await loadBackupInfo();
+      showToast(`Backup saved: ${backup.windows.reduce((s, w) => s + w.tabs.length, 0)} tabs`);
+    } catch (e) {
+      console.error('Manual backup failed:', e);
+      showToast('Backup failed');
+    }
+  }
+
+  async function confirmRestoreBackup() {
+    try {
+      const result = await chrome.storage.local.get('tabBackup');
+      const backup = result.tabBackup;
+
+      if (!backup || !backup.windows || backup.windows.length === 0) {
+        showToast('No backup available to restore');
+        return;
+      }
+
+      const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+      const confirmed = confirm(
+        `Restore backup from ${backup.date}?\n\n` +
+        `This will open ${backup.windows.length} window(s) with ${tabCount} tabs.\n` +
+        `Your current tabs will NOT be closed.`
+      );
+
+      if (confirmed) {
+        await restoreBackup(backup);
+      }
+    } catch (e) {
+      console.error('Restore failed:', e);
+      showToast('Restore failed');
+    }
+  }
+
+  async function restoreBackup(backup) {
+    let restoredTabs = 0;
+
+    for (const win of backup.windows) {
+      // Create a new window with the first tab
+      if (win.tabs.length === 0) continue;
+
+      const firstTab = win.tabs[0];
+      const newWindow = await chrome.windows.create({ url: firstTab.url });
+      restoredTabs++;
+
+      // Track group assignments: groupTitle -> [tabIds]
+      const groupAssignments = {};
+
+      if (firstTab.groupTitle) {
+        groupAssignments[firstTab.groupTitle] = {
+          color: firstTab.groupColor,
+          tabIds: [newWindow.tabs[0].id]
+        };
+      }
+
+      // Add remaining tabs
+      for (let i = 1; i < win.tabs.length; i++) {
+        const tabData = win.tabs[i];
+        const newTab = await chrome.tabs.create({
+          windowId: newWindow.id,
+          url: tabData.url,
+          pinned: tabData.pinned
+        });
+        restoredTabs++;
+
+        if (tabData.groupTitle) {
+          if (!groupAssignments[tabData.groupTitle]) {
+            groupAssignments[tabData.groupTitle] = {
+              color: tabData.groupColor,
+              tabIds: []
+            };
+          }
+          groupAssignments[tabData.groupTitle].tabIds.push(newTab.id);
+        }
+      }
+
+      // Recreate tab groups
+      for (const [title, data] of Object.entries(groupAssignments)) {
+        if (data.tabIds.length > 0) {
+          try {
+            const groupId = await chrome.tabs.group({ tabIds: data.tabIds });
+            await chrome.tabGroups.update(groupId, {
+              title: title,
+              color: data.color || 'grey'
+            });
+          } catch (e) {
+            console.warn('Failed to create group:', title, e);
+          }
+        }
+      }
+    }
+
+    showToast(`Restored: ${restoredTabs} tabs in ${backup.windows.length} window(s)`);
   }
 
   // ========== Toast ==========

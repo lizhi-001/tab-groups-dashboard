@@ -771,6 +771,23 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+/* Backup info */
+.backup-info {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  padding: 0 4px 6px;
+  line-height: 1.4;
+}
+
+.action-btn-restore {
+  border-color: var(--group-blue);
+  color: var(--group-blue);
+}
+
+.action-btn-restore:hover {
+  background: rgba(26, 115, 232, 0.08);
+}
+
 /* ---------- Empty State ---------- */
 .empty-state {
   text-align: center;
