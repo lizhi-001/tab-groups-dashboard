@@ -43,6 +43,7 @@
     await renderWindowGroups();
     renderStats();
     bindEventListeners();
+    setupFaviconErrorHandler();
     setupAutoRefresh();
   }
 
@@ -315,7 +316,7 @@
     const faviconSrc = tab.favIconUrl || getDefaultFavicon(tab.url);
 
     row.innerHTML = `
-      <img class="tab-favicon" src="${escapeHtml(faviconSrc)}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23e0e0e0%22/><text x=%228%22 y=%2212%22 text-anchor=%22middle%22 font-size=%2210%22 fill=%22%23666%22>?</text></svg>'" />
+      <img class="tab-favicon" src="${escapeHtml(faviconSrc)}" alt="" />
       <span class="tab-title" title="${escapeHtml(tab.title)}${tab.pinned ? ' (Pinned)' : ''}">${tab.pinned ? '📌 ' : ''}${escapeHtml(tab.title)}</span>
       <div class="tab-actions">
         <button class="btn-favorite" title="Add to favorites" data-action="favorite">⭐</button>
@@ -376,7 +377,7 @@
       const faviconSrc = fav.favIconUrl || getDefaultFavicon(fav.url);
 
       item.innerHTML = `
-        <img class="fav-favicon" src="${escapeHtml(faviconSrc)}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23e0e0e0%22/></svg>'" />
+        <img class="fav-favicon" src="${escapeHtml(faviconSrc)}" alt="" />
         <span class="fav-title">${escapeHtml(fav.title || extractSiteNameFromUrl(fav.url))}</span>
         <button class="fav-remove" data-action="remove-fav" data-index="${index}" title="Remove">✕</button>
       `;
@@ -1204,6 +1205,21 @@
     setTimeout(() => {
       toast.classList.remove('show');
     }, duration);
+  }
+
+  // ========== Favicon Error Handler ==========
+  const FALLBACK_FAVICON = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#e0e0e0"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="#666">?</text></svg>'
+  );
+
+  function setupFaviconErrorHandler() {
+    // Use event delegation on document to catch all img errors
+    document.addEventListener('error', (e) => {
+      const target = e.target;
+      if (target.tagName === 'IMG' && (target.classList.contains('tab-favicon') || target.classList.contains('fav-favicon'))) {
+        target.src = FALLBACK_FAVICON;
+      }
+    }, true); // use capture phase to catch errors before they bubble
   }
 
   // ========== Auto Refresh ==========
