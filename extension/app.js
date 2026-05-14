@@ -850,12 +850,12 @@
       return;
     }
 
-    // Click favorite item -> open in new tab
+    // Click favorite item -> open in current tab
     const favItem = target.closest('.favorite-item');
     if (favItem) {
       const url = favItem.getAttribute('data-url');
       if (url) {
-        chrome.tabs.create({ url });
+        chrome.tabs.update({ url });
       }
     }
   }
