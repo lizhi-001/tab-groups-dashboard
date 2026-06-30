@@ -52,6 +52,7 @@ async function updateBadge() {
 
 const BACKUP_ALARM_NAME = 'daily-tab-backup';
 const BACKUP_INTERVAL_MINUTES = 24 * 60; // 24 hours
+const BACKUP_VERSION = '2.0';
 
 /**
  * Create a snapshot of all windows, groups, and tabs
@@ -78,8 +79,9 @@ async function createBackup() {
 
     // Build backup data
     const backup = {
+      version: BACKUP_VERSION,
       timestamp: Date.now(),
-      date: new Date().toLocaleString(),
+      date: new Date().toISOString(),
       windows: []
     };
 
@@ -109,11 +111,79 @@ async function createBackup() {
       }
     });
 
-    // Save backup (overwrite previous)
+    // Save backup to chrome.storage.local (overwrite previous)
     await chrome.storage.local.set({ tabBackup: backup });
-    console.log(`[Tab Groups Dashboard] Backup saved: ${backup.windows.length} windows, ${backup.windows.reduce((s, w) => s + w.tabs.length, 0)} tabs at ${backup.date}`);
+
+    // Also save to persistent file via OPFS (Origin Private File System)
+    await saveBackupToFile(backup);
+
+    const totalTabs = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+    console.log(`[Tab Groups Dashboard] Backup saved: ${backup.windows.length} windows, ${totalTabs} tabs at ${backup.date}`);
   } catch (e) {
     console.error('[Tab Groups Dashboard] Backup failed:', e);
+  }
+}
+
+/**
+ * Save backup to Origin Private File System (persists across browser restarts)
+ * OPFS is available in service workers and is truly persistent on disk.
+ */
+async function saveBackupToFile(backup) {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const fileHandle = await root.getFileHandle('tab-backup-latest.json', { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(backup, null, 2));
+    await writable.close();
+
+    // Also keep a timestamped copy (max 3 backups)
+    const timestampedName = `tab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const tsHandle = await root.getFileHandle(timestampedName, { create: true });
+    const tsWritable = await tsHandle.createWritable();
+    await tsWritable.write(JSON.stringify(backup, null, 2));
+    await tsWritable.close();
+
+    // Cleanup old backups (keep latest 3 daily files)
+    await cleanupOldBackups(root);
+  } catch (e) {
+    console.warn('[Tab Groups Dashboard] OPFS backup failed (non-critical):', e);
+  }
+}
+
+/**
+ * Clean up old backup files in OPFS, keep only latest 3 daily backups
+ */
+async function cleanupOldBackups(root) {
+  try {
+    const backupFiles = [];
+    for await (const [name, handle] of root) {
+      if (name.startsWith('tab-backup-') && name !== 'tab-backup-latest.json' && name.endsWith('.json')) {
+        backupFiles.push(name);
+      }
+    }
+    // Sort descending (newest first)
+    backupFiles.sort().reverse();
+    // Remove files beyond the 3 most recent
+    for (let i = 3; i < backupFiles.length; i++) {
+      await root.removeEntry(backupFiles[i]);
+    }
+  } catch (e) {
+    // Non-critical cleanup error
+  }
+}
+
+/**
+ * Read backup from OPFS (fallback if chrome.storage.local is empty)
+ */
+async function readBackupFromFile() {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const fileHandle = await root.getFileHandle('tab-backup-latest.json');
+    const file = await fileHandle.getFile();
+    const content = await file.text();
+    return JSON.parse(content);
+  } catch (e) {
+    return null;
   }
 }
 
@@ -133,6 +203,39 @@ function setupBackupAlarm() {
   });
 }
 
+// ========== Message Handler ==========
+// Allow the frontend (app.js) to communicate with the service worker
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'createBackup') {
+    createBackup().then(() => {
+      sendResponse({ success: true });
+    }).catch(e => {
+      sendResponse({ success: false, error: e.message });
+    });
+    return true; // async response
+  }
+
+  if (message.action === 'getBackupFromFile') {
+    readBackupFromFile().then(backup => {
+      sendResponse({ success: true, backup });
+    }).catch(e => {
+      sendResponse({ success: false, error: e.message });
+    });
+    return true;
+  }
+
+  if (message.action === 'exportBackup') {
+    // Read from OPFS and return for download
+    readBackupFromFile().then(backup => {
+      sendResponse({ success: true, backup });
+    }).catch(e => {
+      sendResponse({ success: false, error: e.message });
+    });
+    return true;
+  }
+});
+
 // ========== Event Listeners ==========
 
 // Extension lifecycle
@@ -146,6 +249,8 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   updateBadge();
   setupBackupAlarm();
+  // Also backup on browser startup to ensure we have a fresh copy
+  createBackup();
 });
 
 // Alarm handler

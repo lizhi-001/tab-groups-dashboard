@@ -729,6 +729,11 @@
     // Backup actions
     document.getElementById('btn-backup-now')?.addEventListener('click', manualBackup);
     document.getElementById('btn-restore-backup')?.addEventListener('click', confirmRestoreBackup);
+    document.getElementById('btn-export-backup')?.addEventListener('click', exportBackupToFile);
+    document.getElementById('btn-import-backup')?.addEventListener('click', () => {
+      document.getElementById('import-file-input')?.click();
+    });
+    document.getElementById('import-file-input')?.addEventListener('change', importBackupFromFile);
     loadBackupInfo();
 
     // Add favorite button
@@ -1017,7 +1022,22 @@
   async function loadBackupInfo() {
     try {
       const result = await chrome.storage.local.get('tabBackup');
-      const backup = result.tabBackup;
+      let backup = result.tabBackup;
+
+      // Fallback: try reading from OPFS via background service worker
+      if (!backup || !backup.timestamp) {
+        try {
+          const response = await chrome.runtime.sendMessage({ action: 'getBackupFromFile' });
+          if (response && response.success && response.backup) {
+            backup = response.backup;
+            // Re-save to chrome.storage.local for faster future access
+            await chrome.storage.local.set({ tabBackup: backup });
+          }
+        } catch (e) {
+          // Service worker may not be ready yet
+        }
+      }
+
       const infoEl = document.getElementById('backup-info');
       if (!infoEl) return;
 
@@ -1025,7 +1045,7 @@
         const date = new Date(backup.timestamp);
         const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
         infoEl.textContent = `Last: ${formatBackupDate(date)} · ${tabCount} tabs`;
-        infoEl.title = `${backup.windows.length} windows, ${tabCount} tabs`;
+        infoEl.title = `${backup.windows.length} windows, ${tabCount} tabs\nBackup time: ${new Date(backup.timestamp).toLocaleString()}`;
       } else {
         infoEl.textContent = 'No backup yet';
       }
@@ -1051,7 +1071,23 @@
 
   async function manualBackup() {
     try {
-      // Trigger backup via the same logic as background.js
+      // Trigger backup via service worker (writes to both storage and OPFS)
+      const response = await chrome.runtime.sendMessage({ action: 'createBackup' });
+      if (response && response.success) {
+        await loadBackupInfo();
+        showToast('Backup saved to storage and local file');
+      } else {
+        // Fallback: do it locally
+        await manualBackupFallback();
+      }
+    } catch (e) {
+      // Service worker not available, do local backup
+      await manualBackupFallback();
+    }
+  }
+
+  async function manualBackupFallback() {
+    try {
       const windows = await chrome.windows.getAll({ populate: true });
       let tabGroups = [];
       try {
@@ -1068,8 +1104,9 @@
       });
 
       const backup = {
+        version: '2.0',
         timestamp: Date.now(),
-        date: new Date().toLocaleString(),
+        date: new Date().toISOString(),
         windows: []
       };
 
@@ -1108,7 +1145,17 @@
   async function confirmRestoreBackup() {
     try {
       const result = await chrome.storage.local.get('tabBackup');
-      const backup = result.tabBackup;
+      let backup = result.tabBackup;
+
+      // Fallback: try OPFS
+      if (!backup || !backup.windows || backup.windows.length === 0) {
+        try {
+          const response = await chrome.runtime.sendMessage({ action: 'getBackupFromFile' });
+          if (response && response.success && response.backup) {
+            backup = response.backup;
+          }
+        } catch (e) {}
+      }
 
       if (!backup || !backup.windows || backup.windows.length === 0) {
         showToast('No backup available to restore');
@@ -1116,9 +1163,25 @@
       }
 
       const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+      const backupDate = backup.timestamp
+        ? new Date(backup.timestamp).toLocaleString()
+        : backup.date || 'Unknown';
+
+      // Count groups
+      const groupNames = new Set();
+      backup.windows.forEach(w => {
+        w.tabs.forEach(t => {
+          if (t.groupTitle) groupNames.add(t.groupTitle);
+        });
+      });
+
       const confirmed = confirm(
-        `Restore backup from ${backup.date}?\n\n` +
-        `This will open ${backup.windows.length} window(s) with ${tabCount} tabs.\n` +
+        `Restore session backup?\n\n` +
+        `Backup time: ${backupDate}\n` +
+        `Windows: ${backup.windows.length}\n` +
+        `Tabs: ${tabCount}\n` +
+        `Tab Groups: ${groupNames.size}\n\n` +
+        `This will open new window(s) with the backed-up tabs.\n` +
         `Your current tabs will NOT be closed.`
       );
 
@@ -1131,20 +1194,50 @@
     }
   }
 
+  /**
+   * Only http(s) URLs are safe to restore. This blocks dangerous schemes
+   * (javascript:, data:, file:, etc.) that could come from imported files.
+   */
+  function isSafeRestoreUrl(url) {
+    if (typeof url !== 'string') return false;
+    try {
+      const scheme = new URL(url).protocol;
+      return scheme === 'http:' || scheme === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   async function restoreBackup(backup) {
     let restoredTabs = 0;
+    let skippedTabs = 0;
+    let failedTabs = 0;
+    let restoredWindows = 0;
 
     for (const win of backup.windows) {
-      // Create a new window with the first tab
-      if (win.tabs.length === 0) continue;
+      // Keep only tabs with a safe, restorable URL
+      const safeTabs = (win.tabs || []).filter(t => {
+        if (isSafeRestoreUrl(t?.url)) return true;
+        skippedTabs++;
+        return false;
+      });
+      if (safeTabs.length === 0) continue;
 
-      const firstTab = win.tabs[0];
-      const newWindow = await chrome.windows.create({ url: firstTab.url });
+      let newWindow;
+      try {
+        newWindow = await chrome.windows.create({ url: safeTabs[0].url });
+      } catch (e) {
+        console.warn('Failed to create window:', e);
+        failedTabs += safeTabs.length;
+        continue;
+      }
+      restoredWindows++;
       restoredTabs++;
 
       // Track group assignments: groupTitle -> [tabIds]
       const groupAssignments = {};
 
+      const firstTab = safeTabs[0];
       if (firstTab.groupTitle) {
         groupAssignments[firstTab.groupTitle] = {
           color: firstTab.groupColor,
@@ -1153,13 +1246,20 @@
       }
 
       // Add remaining tabs
-      for (let i = 1; i < win.tabs.length; i++) {
-        const tabData = win.tabs[i];
-        const newTab = await chrome.tabs.create({
-          windowId: newWindow.id,
-          url: tabData.url,
-          pinned: tabData.pinned
-        });
+      for (let i = 1; i < safeTabs.length; i++) {
+        const tabData = safeTabs[i];
+        let newTab;
+        try {
+          newTab = await chrome.tabs.create({
+            windowId: newWindow.id,
+            url: tabData.url,
+            pinned: tabData.pinned
+          });
+        } catch (e) {
+          console.warn('Failed to create tab:', tabData.url, e);
+          failedTabs++;
+          continue;
+        }
         restoredTabs++;
 
         if (tabData.groupTitle) {
@@ -1189,7 +1289,163 @@
       }
     }
 
-    showToast(`Restored: ${restoredTabs} tabs in ${backup.windows.length} window(s)`);
+    let msg = `Restored: ${restoredTabs} tabs in ${restoredWindows} window(s)`;
+    const extras = [];
+    if (skippedTabs > 0) extras.push(`${skippedTabs} skipped (unsafe URL)`);
+    if (failedTabs > 0) extras.push(`${failedTabs} failed`);
+    if (extras.length > 0) msg += ` · ${extras.join(', ')}`;
+    showToast(msg);
+  }
+
+  // ========== Export / Import Backup ==========
+
+  /**
+   * Export backup as a downloadable JSON file to the user's computer.
+   * This ensures data persists even if the browser profile is deleted.
+   */
+  async function exportBackupToFile() {
+    try {
+      const result = await chrome.storage.local.get('tabBackup');
+      let backup = result.tabBackup;
+
+      // Try OPFS if storage is empty
+      if (!backup) {
+        const response = await chrome.runtime.sendMessage({ action: 'getBackupFromFile' });
+        if (response && response.success && response.backup) {
+          backup = response.backup;
+        }
+      }
+
+      if (!backup || !backup.windows || backup.windows.length === 0) {
+        showToast('No backup available to export');
+        return;
+      }
+
+      // Create downloadable file
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const dateStr = new Date(backup.timestamp).toISOString().slice(0, 10);
+      const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+      const filename = `tab-groups-backup-${dateStr}-${tabCount}tabs.json`;
+
+      // Trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`Exported: ${filename}`);
+    } catch (e) {
+      console.error('Export failed:', e);
+      showToast('Export failed');
+    }
+  }
+
+  /**
+   * Import backup from a user-selected JSON file
+   */
+  async function importBackupFromFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      e.target.value = '';
+      return;
+    }
+
+    // Step 1: Read file content
+    let text;
+    try {
+      text = await file.text();
+    } catch (err) {
+      console.error('Import failed (read):', err);
+      showToast('Failed to read file');
+      e.target.value = '';
+      return;
+    }
+
+    // Step 2: Parse JSON
+    let backup;
+    try {
+      backup = JSON.parse(text);
+    } catch (err) {
+      console.error('Import failed (parse):', err);
+      showToast('Failed to import: not valid JSON');
+      e.target.value = '';
+      return;
+    }
+
+    // Step 3: Validate structure
+    if (!backup || typeof backup !== 'object' || !Array.isArray(backup.windows)) {
+      showToast('Invalid backup file: missing "windows" array');
+      e.target.value = '';
+      return;
+    }
+    if (backup.windows.length === 0) {
+      showToast('Invalid backup file: no windows to import');
+      e.target.value = '';
+      return;
+    }
+    for (const win of backup.windows) {
+      if (!win || !Array.isArray(win.tabs)) {
+        showToast('Invalid backup file: missing tabs data');
+        e.target.value = '';
+        return;
+      }
+    }
+
+    const tabCount = backup.windows.reduce((s, w) => s + w.tabs.length, 0);
+    if (tabCount === 0) {
+      showToast('Invalid backup file: contains 0 tabs');
+      e.target.value = '';
+      return;
+    }
+    const backupDate = backup.timestamp
+      ? new Date(backup.timestamp).toLocaleString()
+      : 'Unknown date';
+
+    // Step 4: Confirm with user
+    const confirmed = confirm(
+      `Import backup from file?\n\n` +
+      `File: ${file.name}\n` +
+      `Backup date: ${backupDate}\n` +
+      `Contents: ${backup.windows.length} window(s), ${tabCount} tabs\n\n` +
+      `This will replace your current saved backup.`
+    );
+    if (!confirmed) {
+      e.target.value = '';
+      return;
+    }
+
+    // Step 5: Save to storage
+    try {
+      await chrome.storage.local.set({ tabBackup: backup });
+    } catch (err) {
+      console.error('Import failed (save):', err);
+      const msg = /quota/i.test(err?.message || '')
+        ? 'Import failed: backup too large for storage'
+        : `Import failed: ${err?.message || 'could not save'}`;
+      showToast(msg);
+      e.target.value = '';
+      return;
+    }
+
+    await loadBackupInfo();
+    showToast(`Imported: ${tabCount} tabs from ${file.name}`);
+    e.target.value = '';
+
+    // Step 6: Offer to restore immediately
+    const restoreNow = confirm(
+      `Import successful!\n\n` +
+      `${tabCount} tabs saved as your backup.\n\n` +
+      `Open these tabs now? (Your current tabs will NOT be closed.)`
+    );
+    if (restoreNow) {
+      await restoreBackup(backup);
+    }
   }
 
   // ========== Toast ==========

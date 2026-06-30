@@ -636,11 +636,12 @@ body {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   position: sticky;
   top: 24px;
   align-self: start;
   max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 /* Search */
@@ -742,19 +743,19 @@ body {
 .quick-actions {
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: 18px;
+  padding: 14px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   background: var(--bg-group);
@@ -775,7 +776,8 @@ body {
 .backup-info {
   font-size: 0.75rem;
   color: var(--text-tertiary);
-  padding: 0 4px 6px;
+  margin: -2px 0 0;
+  padding: 0 4px;
   line-height: 1.4;
 }
 
